@@ -31,33 +31,30 @@ valor_minimo = ler_numero(
 
 # ---------------- AMAZON ----------------
 if marketplace == "Amazon":
+    COMISSAO_AMAZON = 0.15  # 15% fixa
+
     frete = ler_numero(
         "Frete (R$)",
         "Ex: 25"
     )
 
-    comissao_txt = st.text_input(
-        "Comissão (%)",
-        placeholder="Ex: 15"
+    # Comissão apenas informativa
+    st.text_input(
+        "Comissão Amazon (%)",
+        value="15",
+        disabled=True
     )
 
-    comissao = None
-    if comissao_txt.strip() != "":
-        try:
-            comissao = float(comissao_txt.replace(",", ".")) / 100
-        except ValueError:
-            st.error("Digite apenas números no campo: Comissão (%)")
-
     if st.button("Calcular preço Amazon"):
-        if None in (valor_minimo, frete, comissao):
+        if None in (valor_minimo, frete):
             st.warning("Preencha todos os campos corretamente.")
         else:
             preco_venda = math.ceil(
-                (valor_minimo + frete) / (1 - comissao) - frete
+                (valor_minimo + frete) / (1 - COMISSAO_AMAZON) - frete
             )
 
             valor_recebido = (
-                (preco_venda + frete) * (1 - comissao) - frete
+                (preco_venda + frete) * (1 - COMISSAO_AMAZON) - frete
             )
 
             st.success(f"Preço mínimo de venda: R$ {preco_venda:.2f}")
