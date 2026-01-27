@@ -1,88 +1,116 @@
 import streamlit as st
 import math
 
-st.set_page_config(page_title="Calculadora Amazon & Shopee")
+st.set_page_config(page_title="Calculadora Amazon & Shopee", layout="centered")
 
 st.title("📦 Calculadora de Preço de Venda")
-
-marketplace = st.selectbox(
-    "Marketplace",
-    ["Amazon", "Shopee"]
-)
+st.caption("Calcule o preço mínimo de venda para Amazon e Shopee garantindo o valor líquido desejado.")
 
 st.divider()
 
-def ler_numero(label, placeholder):
-    texto = st.text_input(label, placeholder=placeholder)
+# =====================
+# AMAZON
+# =====================
+st.subheader("🟠 Amazon")
 
-    if texto.strip() == "":
-        return None
+AMAZON_COMISSAO = 0.15  # fixa
 
-    try:
-        return float(texto.replace(",", "."))
-    except ValueError:
-        st.error(f"Digite apenas números no campo: {label}")
-        return None
-
-valor_minimo = ler_numero(
-    "Quanto você quer receber líquido (R$)",
-    "Ex: 120"
+valor_minimo_amazon = st.text_input(
+    "Valor mínimo que você deseja receber (R$)",
+    placeholder="Ex: 50.00"
 )
 
-# ---------------- AMAZON ----------------
-if marketplace == "Amazon":
-    COMISSAO_AMAZON = 0.15  # 15% fixa
+frete_amazon = st.text_input(
+    "Frete (R$)",
+    placeholder="Ex: 12.90"
+)
 
-    frete = ler_numero(
-        "Frete (R$)",
-        "Ex: 25"
-    )
+st.caption("Comissão Amazon: 15% (fixa)")
 
-    # Comissão apenas informativa
-    st.text_input(
-        "Comissão Amazon (%)",
-        value="15",
-        disabled=True
-    )
+if valor_minimo_amazon and frete_amazon:
+    try:
+        valor_minimo_amazon = float(valor_minimo_amazon)
+        frete_amazon = float(frete_amazon)
 
-    if st.button("Calcular preço Amazon"):
-        if None in (valor_minimo, frete):
-            st.warning("Preencha todos os campos corretamente.")
-        else:
-            preco_venda = math.ceil(
-                (valor_minimo + frete) / (1 - COMISSAO_AMAZON) - frete
-            )
+        preco_venda_amazon = math.ceil(
+            (valor_minimo_amazon + frete_amazon) / (1 - AMAZON_COMISSAO) - frete_amazon
+        )
 
-            valor_recebido = (
-                (preco_venda + frete) * (1 - COMISSAO_AMAZON) - frete
-            )
+        valor_recebido_amazon = (
+            (preco_venda_amazon + frete_amazon) * (1 - AMAZON_COMISSAO) - frete_amazon
+        )
 
-            st.success(f"Preço mínimo de venda: R$ {preco_venda:.2f}")
-            st.caption(f"Você receberá: R$ {valor_recebido:.2f}")
+        st.success(f"💰 Preço mínimo de venda: R$ {preco_venda_amazon:.2f}")
+        st.info(f"📥 Valor recebido: R$ {valor_recebido_amazon:.2f}")
 
-# ---------------- SHOPEE ----------------
-if marketplace == "Shopee":
-    TAXA_PERCENTUAL = 0.14
-    TAXA_FIXA = 4.0
-    TETO_COMISSAO = 104.0
+    except ValueError:
+        st.error("Digite apenas números válidos.")
 
-    if st.button("Calcular preço Shopee"):
-        if valor_minimo is None:
-            st.warning("Preencha o valor mínimo corretamente.")
-        else:
-            preco_percentual = math.ceil(
-                (valor_minimo + TAXA_FIXA) / (1 - TAXA_PERCENTUAL)
-            )
+with st.expander("📐 Fórmula utilizada (Amazon)"):
+    st.markdown("""
+**Recebido:**  
+(recebido) = (preço_venda + frete) × (1 − 0,15) − frete  
 
-            comissao_calculada = preco_percentual * TAXA_PERCENTUAL
+**Preço mínimo de venda:**  
+preço_venda = ceil((valor_mínimo + frete) ÷ (1 − 0,15) − frete)
+""")
 
-            if comissao_calculada > TETO_COMISSAO:
-                preco_venda = math.ceil(valor_minimo + TAXA_FIXA + TETO_COMISSAO)
-            else:
-                preco_venda = preco_percentual
+st.divider()
 
-            comissao_final = min(preco_venda * TAXA_PERCENTUAL, TETO_COMISSAO)
-            valor_recebido = preco_venda - comissao_final - TAXA_FIXA
+# =====================
+# SHOPEE
+# =====================
+st.subheader("🟧 Shopee")
 
-            st.success(f"Preço mínimo de venda: R$ {preco_venda:.2f}")
-            st.caption(f"Você receberá: R$ {valor_recebido:.2f}")
+SHOPEE_COMISSAO = 0.14
+SHOPEE_TETO_COMISSAO = 104.00
+SHOPEE_TAXA_FIXA = 4.00
+
+valor_minimo_shopee = st.text_input(
+    "Valor mínimo que você deseja receber (R$)",
+    placeholder="Ex: 50.00",
+    key="shopee_min"
+)
+
+if valor_minimo_shopee:
+    try:
+        valor_minimo_shopee = float(valor_minimo_shopee)
+
+        # Comissão limitada ao teto
+        preco_estimado = valor_minimo_shopee / (1 - SHOPEE_COMISSAO)
+        comissao_calculada = preco_estimado * SHOPEE_COMISSAO
+        comissao_final = min(comissao_calculada, SHOPEE_TETO_COMISSAO)
+
+        preco_venda_shopee = math.ceil(
+            valor_minimo_shopee + comissao_final + SHOPEE_TAXA_FIXA
+        )
+
+        valor_recebido_shopee = (
+            preco_venda_shopee
+            - min(preco_venda_shopee * SHOPEE_COMISSAO, SHOPEE_TETO_COMISSAO)
+            - SHOPEE_TAXA_FIXA
+        )
+
+        st.success(f"💰 Preço mínimo de venda: R$ {preco_venda_shopee:.2f}")
+        st.info(f"📥 Valor recebido: R$ {valor_recebido_shopee:.2f}")
+
+    except ValueError:
+        st.error("Digite apenas números válidos.")
+
+with st.expander("📐 Fórmula utilizada (Shopee)"):
+    st.markdown("""
+**Regras Shopee:**
+- Comissão: 14% apenas sobre o valor do produto
+- Comissão máxima: R$ 104,00
+- Taxa fixa: R$ 4,00 por item
+
+**Preço mínimo de venda (lógica):**  
+preço_venda = valor_mínimo + comissão + taxa_fixa  
+
+onde:  
+comissão = min(preço_venda × 0,14, 104)
+""")
+
+st.divider()
+
+st.caption("App simples para conferência de preços — ideal para uso interno ou publicação via Streamlit Cloud.")
