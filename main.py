@@ -17,20 +17,20 @@ AMAZON_COMISSAO = 0.15  # fixa
 
 valor_minimo_amazon = st.text_input(
     "Valor mínimo que você deseja receber (R$)",
-    placeholder="Ex: 50.00"
+    placeholder="Ex: 50,00"
 )
 
 frete_amazon = st.text_input(
     "Frete (R$)",
-    placeholder="Ex: 12.90"
+    placeholder="Ex: 12,90"
 )
 
 st.caption("Comissão Amazon: 15% (fixa)")
 
 if valor_minimo_amazon and frete_amazon:
     try:
-        valor_minimo_amazon = float(valor_minimo_amazon)
-        frete_amazon = float(frete_amazon)
+        valor_minimo_amazon = float(valor_minimo_amazon.replace(",", "."))
+        frete_amazon = float(frete_amazon.replace(",", "."))
 
         preco_venda_amazon = math.ceil(
             (valor_minimo_amazon + frete_amazon) / (1 - AMAZON_COMISSAO) - frete_amazon
@@ -44,7 +44,7 @@ if valor_minimo_amazon and frete_amazon:
         st.info(f"📥 Valor recebido: R$ {valor_recebido_amazon:.2f}")
 
     except ValueError:
-        st.error("Digite apenas números válidos.")
+        st.error("Digite apenas números válidos (use vírgula ou ponto).")
 
 with st.expander("📐 Fórmula utilizada (Amazon)"):
     st.markdown("""
@@ -68,15 +68,14 @@ SHOPEE_TAXA_FIXA = 4.00
 
 valor_minimo_shopee = st.text_input(
     "Valor mínimo que você deseja receber (R$)",
-    placeholder="Ex: 50.00",
+    placeholder="Ex: 50,00",
     key="shopee_min"
 )
 
 if valor_minimo_shopee:
     try:
-        valor_minimo_shopee = float(valor_minimo_shopee)
+        valor_minimo_shopee = float(valor_minimo_shopee.replace(",", "."))
 
-        # Comissão limitada ao teto
         preco_estimado = valor_minimo_shopee / (1 - SHOPEE_COMISSAO)
         comissao_calculada = preco_estimado * SHOPEE_COMISSAO
         comissao_final = min(comissao_calculada, SHOPEE_TETO_COMISSAO)
@@ -95,7 +94,7 @@ if valor_minimo_shopee:
         st.info(f"📥 Valor recebido: R$ {valor_recebido_shopee:.2f}")
 
     except ValueError:
-        st.error("Digite apenas números válidos.")
+        st.error("Digite apenas números válidos (use vírgula ou ponto).")
 
 with st.expander("📐 Fórmula utilizada (Shopee)"):
     st.markdown("""
@@ -104,7 +103,7 @@ with st.expander("📐 Fórmula utilizada (Shopee)"):
 - Comissão máxima: R$ 104,00
 - Taxa fixa: R$ 4,00 por item
 
-**Preço mínimo de venda (lógica):**  
+**Preço mínimo de venda:**  
 preço_venda = valor_mínimo + comissão + taxa_fixa  
 
 onde:  
@@ -113,4 +112,4 @@ comissão = min(preço_venda × 0,14, 104)
 
 st.divider()
 
-st.caption("App simples para conferência de preços — ideal para uso interno ou publicação via Streamlit Cloud.")
+st.caption("Calculadora pensada para uso real em marketplaces brasileiros.")
