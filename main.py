@@ -12,38 +12,56 @@ marketplace = st.selectbox(
 
 st.divider()
 
-valor_minimo = st.number_input(
+def ler_numero(label, placeholder):
+    texto = st.text_input(label, placeholder=placeholder)
+
+    if texto.strip() == "":
+        return None
+
+    try:
+        return float(texto.replace(",", "."))
+    except ValueError:
+        st.error(f"Digite apenas números no campo: {label}")
+        return None
+
+valor_minimo = ler_numero(
     "Quanto você quer receber líquido (R$)",
-    min_value=0.0,
-    step=1.0
+    "Ex: 120"
 )
 
 # ---------------- AMAZON ----------------
 if marketplace == "Amazon":
-    frete = st.number_input(
+    frete = ler_numero(
         "Frete (R$)",
-        min_value=0.0,
-        step=1.0
+        "Ex: 25"
     )
 
-    comissao = st.number_input(
+    comissao_txt = st.text_input(
         "Comissão (%)",
-        min_value=0.0,
-        max_value=100.0,
-        value=15.0
-    ) / 100
+        placeholder="Ex: 15"
+    )
+
+    comissao = None
+    if comissao_txt.strip() != "":
+        try:
+            comissao = float(comissao_txt.replace(",", ".")) / 100
+        except ValueError:
+            st.error("Digite apenas números no campo: Comissão (%)")
 
     if st.button("Calcular preço Amazon"):
-        preco_venda = math.ceil(
-            (valor_minimo + frete) / (1 - comissao) - frete
-        )
+        if None in (valor_minimo, frete, comissao):
+            st.warning("Preencha todos os campos corretamente.")
+        else:
+            preco_venda = math.ceil(
+                (valor_minimo + frete) / (1 - comissao) - frete
+            )
 
-        valor_recebido = (
-            (preco_venda + frete) * (1 - comissao) - frete
-        )
+            valor_recebido = (
+                (preco_venda + frete) * (1 - comissao) - frete
+            )
 
-        st.success(f"Preço mínimo de venda: R$ {preco_venda:.2f}")
-        st.caption(f"Você receberá: R$ {valor_recebido:.2f}")
+            st.success(f"Preço mínimo de venda: R$ {preco_venda:.2f}")
+            st.caption(f"Você receberá: R$ {valor_recebido:.2f}")
 
 # ---------------- SHOPEE ----------------
 if marketplace == "Shopee":
@@ -52,24 +70,22 @@ if marketplace == "Shopee":
     TETO_COMISSAO = 104.0
 
     if st.button("Calcular preço Shopee"):
-        # Regime percentual
-        preco_percentual = math.ceil(
-            (valor_minimo + TAXA_FIXA) / (1 - TAXA_PERCENTUAL)
-        )
-
-        comissao_calculada = preco_percentual * TAXA_PERCENTUAL
-
-        # Verifica teto
-        if comissao_calculada > TETO_COMISSAO:
-            preco_venda = math.ceil(valor_minimo + TAXA_FIXA + TETO_COMISSAO)
+        if valor_minimo is None:
+            st.warning("Preencha o valor mínimo corretamente.")
         else:
-            preco_venda = preco_percentual
+            preco_percentual = math.ceil(
+                (valor_minimo + TAXA_FIXA) / (1 - TAXA_PERCENTUAL)
+            )
 
-        # Conferência
-        comissao_final = min(preco_venda * TAXA_PERCENTUAL, TETO_COMISSAO)
-        valor_recebido = preco_venda - comissao_final - TAXA_FIXA
+            comissao_calculada = preco_percentual * TAXA_PERCENTUAL
 
-        st.success(f"Preço mínimo de venda: R$ {preco_venda:.2f}")
-        st.caption(f"Você receberá: R$ {valor_recebido:.2f}")
+            if comissao_calculada > TETO_COMISSAO:
+                preco_venda = math.ceil(valor_minimo + TAXA_FIXA + TETO_COMISSAO)
+            else:
+                preco_venda = preco_percentual
 
+            comissao_final = min(preco_venda * TAXA_PERCENTUAL, TETO_COMISSAO)
+            valor_recebido = preco_venda - comissao_final - TAXA_FIXA
 
+            st.success(f"Preço mínimo de venda: R$ {preco_venda:.2f}")
+            st.caption(f"Você receberá: R$ {valor_recebido:.2f}")
