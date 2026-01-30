@@ -76,10 +76,10 @@ if valor_minimo_shopee:
     try:
         valor_minimo_shopee = float(valor_minimo_shopee.replace(",", "."))
 
-        # estimativa inicial
+        # Estimativa inicial
         preco_venda = math.ceil(valor_minimo_shopee / (1 - SHOPEE_COMISSAO))
 
-        # ajuste iterativo até garantir valor mínimo real
+        # Ajuste iterativo para garantir valor mínimo real
         while True:
             comissao = min(preco_venda * SHOPEE_COMISSAO, SHOPEE_TETO_COMISSAO)
             valor_recebido = preco_venda - comissao - SHOPEE_TAXA_FIXA
@@ -95,9 +95,6 @@ if valor_minimo_shopee:
     except ValueError:
         st.error("Digite apenas números válidos (use vírgula ou ponto).")
 
-# =====================
-# EXPLICAÇÃO DA FÓRMULA
-# =====================
 with st.expander("📐 Fórmula utilizada (Shopee)"):
     st.markdown("""
 **Regras Shopee:**
@@ -119,9 +116,3 @@ with st.expander("📐 Fórmula utilizada (Shopee)"):
 
    valor_recebido ≥ valor_mínimo
 """)
-
-        st.success(f"💰 Preço mínimo de venda: R$ {preco_venda:.2f}")
-        st.info(f"📥 Valor recebido: R$ {valor_recebido:.2f}")
-
-    except ValueError:
-        st.error("Digite apenas números válidos (use vírgula ou ponto).")
