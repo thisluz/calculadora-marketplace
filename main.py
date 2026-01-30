@@ -76,40 +76,21 @@ if valor_minimo_shopee:
     try:
         valor_minimo_shopee = float(valor_minimo_shopee.replace(",", "."))
 
-        preco_estimado = valor_minimo_shopee / (1 - SHOPEE_COMISSAO)
-        comissao_calculada = preco_estimado * SHOPEE_COMISSAO
-        comissao_final = min(comissao_calculada, SHOPEE_TETO_COMISSAO)
+        # preço inicial estimado
+        preco_venda = math.ceil(valor_minimo_shopee / (1 - SHOPEE_COMISSAO))
 
-        preco_venda_shopee = math.ceil(
-            valor_minimo_shopee + comissao_final + SHOPEE_TAXA_FIXA
-        )
+        # ajuste até garantir valor mínimo real
+        while True:
+            comissao = min(preco_venda * SHOPEE_COMISSAO, SHOPEE_TETO_COMISSAO)
+            valor_recebido = preco_venda - comissao - SHOPEE_TAXA_FIXA
 
-        valor_recebido_shopee = (
-            preco_venda_shopee
-            - min(preco_venda_shopee * SHOPEE_COMISSAO, SHOPEE_TETO_COMISSAO)
-            - SHOPEE_TAXA_FIXA
-        )
+            if valor_recebido >= valor_minimo_shopee:
+                break
 
-        st.success(f"💰 Preço mínimo de venda: R$ {preco_venda_shopee:.2f}")
-        st.info(f"📥 Valor recebido: R$ {valor_recebido_shopee:.2f}")
+            preco_venda += 1  # sobe 1 real até bater o mínimo
+
+        st.success(f"💰 Preço mínimo de venda: R$ {preco_venda:.2f}")
+        st.info(f"📥 Valor recebido: R$ {valor_recebido:.2f}")
 
     except ValueError:
         st.error("Digite apenas números válidos (use vírgula ou ponto).")
-
-with st.expander("📐 Fórmula utilizada (Shopee)"):
-    st.markdown("""
-**Regras Shopee:**
-- Comissão: 14% apenas sobre o valor do produto
-- Comissão máxima: R$ 104,00
-- Taxa fixa: R$ 4,00 por item
-
-**Preço mínimo de venda:**  
-preço_venda = valor_mínimo + comissão + taxa_fixa  
-
-onde:  
-comissão = min(preço_venda × 0,14, 104)
-""")
-
-st.divider()
-
-st.caption("Calculadora pensada para uso real em marketplaces brasileiros.")
