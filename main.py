@@ -7,14 +7,14 @@ import math
 st.set_page_config(page_title="Calculadora Marketplace", page_icon="🧮")
 
 st.title("🧮 Calculadora de Preço")
-st.caption("Amazon e Shopee: cálculo baseado em valor mínimo desejado")
+st.caption("Amazon vs Shopee — cálculo baseado no valor mínimo desejado")
 
 # =====================
 # AMAZON
 # =====================
 st.subheader("🟦 Amazon")
 
-AMAZON_COMISSAO = 0.15  # FIXO
+AMAZON_COMISSAO = 0.15
 st.write("Comissão fixa Amazon: 15%")
 
 valor_minimo_amazon = st.text_input(
@@ -63,6 +63,8 @@ O sistema ajusta o preço até garantir:
 valor_recebido ≥ valor mínimo desejado
 """)
 
+st.divider()
+
 # =====================
 # SHOPEE
 # =====================
@@ -94,7 +96,7 @@ if valor_minimo_shopee:
     try:
         valor_minimo_shopee = float(valor_minimo_shopee.replace(",", "."))
 
-        preco_venda = math.ceil(valor_minimo_shopee / (1 - 0.20))  # estimativa inicial
+        preco_venda = math.ceil(valor_minimo_shopee / (1 - 0.20))
 
         while True:
             taxas = calcular_taxas_shopee(preco_venda)
@@ -113,19 +115,27 @@ if valor_minimo_shopee:
 
 with st.expander("📐 Fórmula utilizada (Shopee)"):
     st.markdown("""
-Regras Shopee (2026):
+**Regras Shopee (2026):**
 
-- Até R$79,99 → 20% + R$4  
-- R$80 a R$99,99 → 14% + R$16  
-- R$100 a R$199,99 → 14% + R$20  
-- Acima de R$200 → 14% + R$26  
+- Até R$ 79,99 → 20% + R$ 4  
+- De R$ 80,00 a R$ 99,99 → 14% + R$ 16  
+- De R$ 100,00 a R$ 199,99 → 14% + R$ 20  
+- Acima de R$ 200,00 → 14% + R$ 26  
 
-Cálculo:
+**Como o cálculo funciona:**
 
-1. Define a faixa pelo preço  
-2. Calcula comissão + taxa fixa  
-3. Subtrai do preço  
-4. Ajusta o preço até garantir:
+1. Identifica a faixa de preço  
+2. Aplica comissão correspondente  
+3. Soma a taxa fixa  
+4. Calcula o valor recebido  
 
-valor_recebido ≥ valor mínimo
+**Garantia do sistema:**
+
+O preço é ajustado automaticamente até que:
+
+valor_recebido ≥ valor mínimo desejado
 """)
+
+st.divider()
+
+st.caption("Baseado nas regras atualizadas da Shopee (2026) e comissão fixa da Amazon.")
