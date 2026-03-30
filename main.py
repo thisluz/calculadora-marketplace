@@ -7,7 +7,7 @@ import math
 st.set_page_config(page_title="Calculadora Marketplace", page_icon="🧮")
 
 st.title("🧮 Calculadora de Preço")
-st.caption("Amazon vs Shopee — cálculo baseado em valor mínimo desejado")
+st.caption("Amazon e Shopee: cálculo baseado em valor mínimo desejado")
 
 # =====================
 # AMAZON
