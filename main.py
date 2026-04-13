@@ -7,125 +7,121 @@ import math
 st.set_page_config(page_title="Calculadora Marketplace", page_icon="🧮")
 
 st.title("🧮 Calculadora de Preço")
-st.caption("Amazon vs Shopee — cálculo baseado em valor mínimo desejado")
+st.caption("Baseado em lucro desejado (lucro = custo do produto)")
 
 # =====================
-# AMAZON
+# INPUTS GERAIS
 # =====================
-st.subheader("🟦 Amazon")
-
-AMAZON_COMISSAO = 0.15  # FIXO
-st.write("Comissão fixa Amazon: 15%")
-
-valor_minimo_amazon = st.text_input(
-    "Valor mínimo que você deseja receber (R$)",
-    placeholder="Ex: 50,00",
-    key="amazon_min"
+custo_produto = st.text_input(
+    "Custo do produto (R$)",
+    placeholder="Ex: 16,50"
 )
 
-frete_amazon = st.text_input(
-    "Frete (R$)",
-    placeholder="Ex: 10,00",
-    key="amazon_frete"
+embalagem = st.selectbox(
+    "Embalagem",
+    ["Caixa pequena (0,93)", "Caixa grande (1,65)"]
 )
 
-if valor_minimo_amazon and frete_amazon:
-    try:
-        valor_minimo_amazon = float(valor_minimo_amazon.replace(",", "."))
-        frete_amazon = float(frete_amazon.replace(",", "."))
+# =====================
+# CONSTANTES
+# =====================
+MOTOBOY = 4.80
+CARTAO = 0.34
+IMPOSTO = 0.06
+AMAZON_COMISSAO = 0.15
 
-        preco_venda = math.ceil(
-            (valor_minimo_amazon + frete_amazon) / (1 - AMAZON_COMISSAO) - frete_amazon
-        )
-
-        while True:
-            valor_recebido = (preco_venda + frete_amazon) * (1 - AMAZON_COMISSAO) - frete_amazon
-
-            if valor_recebido >= valor_minimo_amazon:
-                break
-
-            preco_venda += 1
-
-        st.success(f"💰 Preço mínimo de venda: R$ {preco_venda:.2f}")
-        st.info(f"📥 Valor recebido: R$ {valor_recebido:.2f}")
-
-    except ValueError:
-        st.error("Digite apenas números válidos (use vírgula ou ponto).")
-
-with st.expander("📐 Fórmula utilizada (Amazon)"):
-    st.markdown("""
-A Amazon cobra 15% sobre (preço + frete).
-
-Fórmula base:
-valor_recebido = (preço + frete) × (1 - 0,15) - frete
-
-O sistema ajusta o preço até garantir:
-valor_recebido ≥ valor mínimo desejado
-""")
+caixa = 0.93 if "pequena" in embalagem else 1.65
 
 # =====================
-# SHOPEE
+# FUNÇÃO SHOPEE
 # =====================
-st.subheader("🟧 Shopee")
-
-valor_minimo_shopee = st.text_input(
-    "Valor mínimo que você deseja receber (R$)",
-    placeholder="Ex: 50,00",
-    key="shopee_min"
-)
-
-def calcular_taxas_shopee(preco):
+def taxa_shopee(preco):
     if preco <= 79.99:
-        comissao = preco * 0.20
-        taxa_fixa = 4
+        return preco * 0.20 + 4
     elif preco <= 99.99:
-        comissao = preco * 0.14
-        taxa_fixa = 16
+        return preco * 0.14 + 16
     elif preco <= 199.99:
-        comissao = preco * 0.14
-        taxa_fixa = 20
+        return preco * 0.14 + 20
     else:
-        comissao = preco * 0.14
-        taxa_fixa = 26
+        return preco * 0.14 + 26
 
-    return comissao + taxa_fixa
-
-if valor_minimo_shopee:
+# =====================
+# CALCULO
+# =====================
+if custo_produto:
     try:
-        valor_minimo_shopee = float(valor_minimo_shopee.replace(",", "."))
+        custo = float(custo_produto.replace(",", "."))
 
-        preco_venda = math.ceil(valor_minimo_shopee / (1 - 0.20))  # estimativa inicial
+        custo_fixo = MOTOBOY + CARTAO + caixa
+        lucro_desejado = custo
+
+        # =====================
+        # SHOPEE
+        # =====================
+        preco_shopee = math.ceil((custo + custo_fixo) / 0.8)
 
         while True:
-            taxas = calcular_taxas_shopee(preco_venda)
-            valor_recebido = preco_venda - taxas
+            taxas = taxa_shopee(preco_shopee)
+            imposto = preco_shopee * IMPOSTO
 
-            if valor_recebido >= valor_minimo_shopee:
+            lucro_shopee = preco_shopee - taxas - imposto - custo_fixo - custo
+
+            if lucro_shopee >= lucro_desejado - 1:
                 break
 
-            preco_venda += 1
+            preco_shopee += 1
 
-        st.success(f"💰 Preço mínimo de venda: R$ {preco_venda:.2f}")
-        st.info(f"📥 Valor recebido: R$ {valor_recebido:.2f}")
+        # =====================
+        # AMAZON
+        # =====================
+        preco_amazon = math.ceil((custo + custo_fixo + lucro_desejado) / 0.85)
 
-    except ValueError:
-        st.error("Digite apenas números válidos (use vírgula ou ponto).")
+        while True:
+            recebido = preco_amazon * (1 - AMAZON_COMISSAO)
+            lucro_amazon = recebido - custo_fixo - custo
 
-with st.expander("📐 Fórmula utilizada (Shopee)"):
+            if lucro_amazon >= lucro_desejado - 1:
+                break
+
+            preco_amazon += 1
+
+        # =====================
+        # RESULTADOS
+        # =====================
+        st.subheader("📊 Resultados")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("### 🟧 Shopee")
+            st.success(f"Preço ideal: R$ {preco_shopee:.2f}")
+            st.info(f"Lucro: R$ {lucro_shopee:.2f}")
+
+        with col2:
+            st.markdown("### 🟦 Amazon")
+            st.success(f"Preço ideal: R$ {preco_amazon:.2f}")
+            st.info(f"Lucro: R$ {lucro_amazon:.2f}")
+
+    except:
+        st.error("Digite um valor válido (use vírgula ou ponto).")
+
+# =====================
+# EXPLICAÇÃO
+# =====================
+with st.expander("📐 Como o cálculo funciona"):
     st.markdown("""
-Regras Shopee (2026):
+O objetivo é garantir:
 
-- Até R$79,99 → 20% + R$4  
-- R$80 a R$99,99 → 14% + R$16  
-- R$100 a R$199,99 → 14% + R$20  
-- Acima de R$200 → 14% + R$26  
+lucro ≥ custo do produto
 
-Cálculo:
+O sistema considera:
 
-1. Define a faixa pelo preço  
-2. Calcula comissão + taxa fixa  
-3. Subtrai do preço  
-4. Ajusta o preço até garantir:
+- custo do produto  
+- motoboy  
+- embalagem  
+- cartão  
+- imposto (Shopee)  
+- comissão do marketplace  
 
-valor_recebido ≥ valor mínimo
+E ajusta o preço automaticamente até atingir o lucro desejado.
 """)
