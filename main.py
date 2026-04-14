@@ -23,43 +23,32 @@ embalagem = st.selectbox(
 )
 
 # =====================
-# MERCADO LIVRE
+# MERCADO LIVRE (SIMPLIFICADO)
 # =====================
 st.subheader("🟨 Mercado Livre")
 
-ml_modo = st.radio(
-    "Como calcular ML",
-    ["Automático (valor recebido)", "Taxa estimada (%)", "Comissão + frete"]
+comissao_ml_input = st.text_input("Comissão (%)", placeholder="Ex: 16")
+
+peso = st.selectbox(
+    "Peso do produto",
+    [
+        "Até 0,3 kg",
+        "0,3 a 0,5 kg",
+        "0,5 a 1 kg",
+        "1 a 1,5 kg",
+        "1,5 a 2 kg",
+        "2 a 3 kg",
+        "3 a 4 kg",
+        "4 a 5 kg"
+    ]
 )
 
-# Inputs dinâmicos
-recebido_ml_input = ""
-taxa_ml_input = ""
-comissao_ml_input = ""
-peso = None
+frete_manual_input = st.text_input(
+    "Frete pago por você (quando grátis ≥79)",
+    placeholder="Ex: 18"
+)
 
-if ml_modo == "Automático (valor recebido)":
-    recebido_ml_input = st.text_input("Valor recebido", placeholder="Ex: 38,80")
-
-elif ml_modo == "Taxa estimada (%)":
-    taxa_ml_input = st.text_input("Taxa (%)", placeholder="Ex: 32")
-
-elif ml_modo == "Comissão + frete":
-    comissao_ml_input = st.text_input("Comissão (%)", placeholder="Ex: 16")
-
-    peso = st.selectbox(
-        "Peso do produto",
-        [
-            "Até 0,3 kg",
-            "0,3 a 0,5 kg",
-            "0,5 a 1 kg",
-            "1 a 1,5 kg",
-            "1,5 a 2 kg",
-            "2 a 3 kg",
-            "3 a 4 kg",
-            "4 a 5 kg"
-        ]
-    )
+st.caption("Esse valor só é usado quando o preço passa de R$79 (frete grátis)")
 
 # =====================
 # CONSTANTES
@@ -72,7 +61,7 @@ AMAZON_COMISSAO = 0.15
 caixa = 0.93 if "pequena" in embalagem else 1.65
 
 # =====================
-# FUNÇÃO FRETE ML
+# FRETE ML
 # =====================
 def frete_ml(peso, preco):
     tabela = {
@@ -106,7 +95,7 @@ def frete_ml(peso, preco):
     return tabela[peso][faixa]
 
 # =====================
-# FUNÇÃO SHOPEE
+# SHOPEE
 # =====================
 def taxa_shopee(preco):
     if preco <= 79.99:
@@ -165,57 +154,23 @@ if valor_input:
                 break
             preco_amazon += 1
 
-        # MERCADO LIVRE
+        # MERCADO LIVRE (FINAL)
         preco_ml = None
 
-        # automático
-        if ml_modo == "Automático (valor recebido)" and recebido_ml_input:
-            preco_teste = valor
-            recebido_teste = float(recebido_ml_input.replace(",", "."))
-            taxa_ml = 1 - (recebido_teste / preco_teste)
-
-            preco_ml = math.ceil(alvo / (1 - taxa_ml))
-
-            while True:
-                recebido_ml = preco_ml * (1 - taxa_ml)
-
-                if modo == "Receber valor líquido":
-                    ok = recebido_ml >= alvo
-                else:
-                    lucro_ml = recebido_ml - custo_fixo - custo
-                    ok = lucro_ml >= lucro_desejado - 1
-
-                if ok:
-                    break
-                preco_ml += 1
-
-        # taxa estimada
-        elif ml_modo == "Taxa estimada (%)" and taxa_ml_input:
-            taxa_ml = float(taxa_ml_input.replace(",", ".")) / 100
-
-            preco_ml = math.ceil(alvo / (1 - taxa_ml))
-
-            while True:
-                recebido_ml = preco_ml * (1 - taxa_ml)
-
-                if modo == "Receber valor líquido":
-                    ok = recebido_ml >= alvo
-                else:
-                    lucro_ml = recebido_ml - custo_fixo - custo
-                    ok = lucro_ml >= lucro_desejado - 1
-
-                if ok:
-                    break
-                preco_ml += 1
-
-        # comissão + frete dinâmico
-        elif ml_modo == "Comissão + frete" and comissao_ml_input and peso:
+        if comissao_ml_input:
             comissao = float(comissao_ml_input.replace(",", ".")) / 100
 
             preco_ml = math.ceil(alvo / (1 - comissao))
 
             while True:
-                frete = frete_ml(peso, preco_ml)
+                frete_tabela = frete_ml(peso, preco_ml)
+
+                # frete grátis
+                if preco_ml >= 79:
+                    frete = float(frete_manual_input.replace(",", ".")) if frete_manual_input else frete_tabela
+                else:
+                    frete = frete_tabela
+
                 recebido_ml = preco_ml * (1 - comissao) - frete
 
                 if modo == "Receber valor líquido":
@@ -226,6 +181,7 @@ if valor_input:
 
                 if ok:
                     break
+
                 preco_ml += 1
 
         # OUTPUT
@@ -246,7 +202,7 @@ if valor_input:
             if preco_ml:
                 st.success(f"R$ {preco_ml:.2f}")
             else:
-                st.warning("Preencha os dados")
+                st.warning("Preencha a comissão")
 
     except Exception as e:
         st.error(f"Erro: {e}")
