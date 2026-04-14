@@ -9,16 +9,13 @@ st.set_page_config(page_title="Calculadora Marketplace", page_icon="🧮")
 st.title("🧮 Calculadora de Preço")
 
 # =====================
-# MODO
+# MODO GLOBAL
 # =====================
 modo = st.radio(
     "Modo de cálculo",
     ["Receber valor líquido", "Lucro baseado no custo"]
 )
 
-# =====================
-# INPUTS
-# =====================
 valor_input = st.text_input("Valor base (R$)", placeholder="Ex: 16,50")
 
 embalagem = st.selectbox(
@@ -26,18 +23,30 @@ embalagem = st.selectbox(
     ["Caixa pequena (0,93)", "Caixa grande (1,65)"]
 )
 
-# Mercado Livre
+# =====================
+# MERCADO LIVRE MODOS
+# =====================
 st.subheader("🟨 Mercado Livre")
 
-recebido_ml_input = st.text_input(
-    "Valor recebido (simulador ou real)",
-    placeholder="Ex: 38,80"
+ml_modo = st.radio(
+    "Como calcular ML",
+    ["Automático (valor recebido)", "Taxa estimada (%)", "Comissão + frete"]
 )
 
-taxa_ml_input = st.text_input(
-    "Taxa (%) caso não saiba o valor recebido",
-    placeholder="Ex: 32"
-)
+recebido_ml_input = ""
+taxa_ml_input = ""
+frete_ml_input = ""
+comissao_ml_input = ""
+
+if ml_modo == "Automático (valor recebido)":
+    recebido_ml_input = st.text_input("Valor recebido", placeholder="Ex: 38,80")
+
+elif ml_modo == "Taxa estimada (%)":
+    taxa_ml_input = st.text_input("Taxa (%)", placeholder="Ex: 32")
+
+else:
+    comissao_ml_input = st.text_input("Comissão (%)", placeholder="Ex: 16")
+    frete_ml_input = st.text_input("Frete (R$)", placeholder="Ex: 10")
 
 # =====================
 # CONSTANTES
@@ -70,9 +79,6 @@ if valor_input != "":
         valor = float(valor_input.replace(",", "."))
         custo_fixo = MOTOBOY + CARTAO + caixa
 
-        # =====================
-        # DEFINIÇÃO DO ALVO
-        # =====================
         if modo == "Receber valor líquido":
             alvo = valor
         else:
@@ -88,13 +94,13 @@ if valor_input != "":
         while True:
             taxas = taxa_shopee(preco_shopee)
             imposto = preco_shopee * IMPOSTO
-            recebido_shopee = preco_shopee - taxas - imposto
+            recebido = preco_shopee - taxas - imposto
 
             if modo == "Receber valor líquido":
-                ok = recebido_shopee >= alvo
+                ok = recebido >= alvo
             else:
-                lucro_shopee = recebido_shopee - custo_fixo - custo
-                ok = lucro_shopee >= lucro_desejado - 1
+                lucro = recebido - custo_fixo - custo
+                ok = lucro >= lucro_desejado - 1
 
             if ok:
                 break
@@ -107,13 +113,13 @@ if valor_input != "":
         preco_amazon = math.ceil(alvo / 0.85)
 
         while True:
-            recebido_amazon = preco_amazon * (1 - AMAZON_COMISSAO)
+            recebido = preco_amazon * (1 - AMAZON_COMISSAO)
 
             if modo == "Receber valor líquido":
-                ok = recebido_amazon >= alvo
+                ok = recebido >= alvo
             else:
-                lucro_amazon = recebido_amazon - custo_fixo - custo
-                ok = lucro_amazon >= lucro_desejado - 1
+                lucro = recebido - custo_fixo - custo
+                ok = lucro >= lucro_desejado - 1
 
             if ok:
                 break
@@ -121,21 +127,29 @@ if valor_input != "":
             preco_amazon += 1
 
         # =====================
-        # MERCADO LIVRE (INTELIGENTE)
+        # MERCADO LIVRE
         # =====================
         preco_ml = None
         taxa_ml = None
 
-        # prioridade: valor recebido real
-        if recebido_ml_input != "":
+        # 🔹 MODO 1 - AUTOMÁTICO
+        if ml_modo == "Automático (valor recebido)" and recebido_ml_input:
             preco_teste = valor
             recebido_teste = float(recebido_ml_input.replace(",", "."))
-
             taxa_ml = 1 - (recebido_teste / preco_teste)
 
-        elif taxa_ml_input != "":
+        # 🔹 MODO 2 - TAXA
+        elif ml_modo == "Taxa estimada (%)" and taxa_ml_input:
             taxa_ml = float(taxa_ml_input.replace(",", ".")) / 100
 
+        # 🔹 MODO 3 - COMISSÃO + FRETE
+        elif ml_modo == "Comissão + frete" and comissao_ml_input and frete_ml_input:
+            comissao = float(comissao_ml_input.replace(",", ".")) / 100
+            frete = float(frete_ml_input.replace(",", "."))
+
+            preco_ml = math.ceil((alvo + frete) / (1 - comissao))
+
+        # 🔁 LOOP (modos 1 e 2)
         if taxa_ml is not None:
             preco_ml = math.ceil(alvo / (1 - taxa_ml))
 
@@ -160,54 +174,20 @@ if valor_input != "":
 
         col1, col2, col3 = st.columns(3)
 
-        # SHOPEE
         with col1:
             st.markdown("### 🟧 Shopee")
+            st.success(f"R$ {preco_shopee:.2f}")
 
-            taxas = taxa_shopee(preco_shopee)
-            imposto = preco_shopee * IMPOSTO
-            recebido_shopee = preco_shopee - taxas - imposto
-
-            st.success(f"Preço: R$ {preco_shopee:.2f}")
-
-            if modo == "Receber valor líquido":
-                st.info(f"Recebe: R$ {recebido_shopee:.2f}")
-            else:
-                lucro = recebido_shopee - custo_fixo - custo
-                st.info(f"Lucro: R$ {lucro:.2f}")
-
-        # AMAZON
         with col2:
             st.markdown("### 🟦 Amazon")
+            st.success(f"R$ {preco_amazon:.2f}")
 
-            recebido_amazon = preco_amazon * (1 - AMAZON_COMISSAO)
-
-            st.success(f"Preço: R$ {preco_amazon:.2f}")
-
-            if modo == "Receber valor líquido":
-                st.info(f"Recebe: R$ {recebido_amazon:.2f}")
-            else:
-                lucro = recebido_amazon - custo_fixo - custo
-                st.info(f"Lucro: R$ {lucro:.2f}")
-
-        # MERCADO LIVRE
         with col3:
             st.markdown("### 🟨 Mercado Livre")
-
             if preco_ml:
-                recebido_ml = preco_ml * (1 - taxa_ml)
-
-                st.success(f"Preço: R$ {preco_ml:.2f}")
-
-                if modo == "Receber valor líquido":
-                    st.info(f"Recebe: R$ {recebido_ml:.2f}")
-                else:
-                    lucro = recebido_ml - custo_fixo - custo
-                    st.info(f"Lucro: R$ {lucro:.2f}")
-
-                st.caption(f"Taxa usada: {taxa_ml*100:.1f}%")
+                st.success(f"R$ {preco_ml:.2f}")
             else:
-                st.warning("Informe taxa ou valor recebido")
+                st.warning("Preencha os dados")
 
     except Exception as e:
         st.error(f"Erro: {e}")
