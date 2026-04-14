@@ -22,9 +22,16 @@ embalagem = st.selectbox(
     ["Caixa pequena (0,93)", "Caixa grande (1,65)"]
 )
 
-comissao_ml = st.text_input(
-    "Comissão Mercado Livre (%)",
-    placeholder="Ex: 16"
+st.subheader("🟨 Mercado Livre (baseado no simulador)")
+
+preco_teste_ml = st.text_input(
+    "Preço testado no ML (R$)",
+    placeholder="Ex: 57"
+)
+
+recebido_ml = st.text_input(
+    "Quanto você recebe no simulador (R$)",
+    placeholder="Ex: 38,80"
 )
 
 # =====================
@@ -91,16 +98,19 @@ if custo_produto:
             preco_amazon += 1
 
         # =====================
-        # MERCADO LIVRE
+        # MERCADO LIVRE (REAL)
         # =====================
-        if comissao_ml:
-            comissao = float(comissao_ml.replace(",", ".")) / 100
+        if preco_teste_ml and recebido_ml:
+            preco_teste = float(preco_teste_ml.replace(",", "."))
+            recebido_teste = float(recebido_ml.replace(",", "."))
 
-            preco_ml = math.ceil((custo + lucro_desejado + custo_fixo) / (1 - comissao))
+            taxa_real_ml = 1 - (recebido_teste / preco_teste)
+
+            preco_ml = math.ceil((custo + lucro_desejado + custo_fixo) / (1 - taxa_real_ml))
 
             while True:
-                recebido = preco_ml * (1 - comissao)
-                lucro_ml = recebido - custo_fixo - custo
+                recebido_real = preco_ml * (1 - taxa_real_ml)
+                lucro_ml = recebido_real - custo_fixo - custo
 
                 if lucro_ml >= lucro_desejado - 1:
                     break
@@ -109,6 +119,7 @@ if custo_produto:
         else:
             preco_ml = None
             lucro_ml = None
+            taxa_real_ml = None
 
         # =====================
         # RESULTADOS
@@ -132,8 +143,9 @@ if custo_produto:
             if preco_ml:
                 st.success(f"Preço: R$ {preco_ml:.2f}")
                 st.info(f"Lucro: R$ {lucro_ml:.2f}")
+                st.caption(f"Taxa real usada: {taxa_real_ml*100:.1f}%")
             else:
-                st.warning("Informe a comissão")
+                st.warning("Preencha os dados do simulador")
 
     except:
         st.error("Digite valores válidos (use vírgula ou ponto).")
@@ -147,14 +159,9 @@ O objetivo é garantir:
 
 lucro ≥ custo do produto
 
-O sistema considera:
+Mercado Livre usa taxa REAL baseada no simulador:
 
-- custo do produto  
-- motoboy  
-- embalagem  
-- cartão  
-- imposto (Shopee)  
-- comissão de cada marketplace  
+taxa_real = 1 - (recebido / preço)
 
-E ajusta o preço automaticamente até atingir o lucro desejado.
+Isso evita erros e reflete exatamente o que você recebe.
 """)
