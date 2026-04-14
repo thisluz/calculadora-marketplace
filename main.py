@@ -10,7 +10,7 @@ st.title("🧮 Calculadora de Preço")
 st.caption("Baseado em lucro desejado (lucro = custo do produto)")
 
 # =====================
-# INPUTS GERAIS
+# INPUTS
 # =====================
 custo_produto = st.text_input(
     "Custo do produto (R$)",
@@ -20,6 +20,11 @@ custo_produto = st.text_input(
 embalagem = st.selectbox(
     "Embalagem",
     ["Caixa pequena (0,93)", "Caixa grande (1,65)"]
+)
+
+comissao_ml = st.text_input(
+    "Comissão Mercado Livre (%)",
+    placeholder="Ex: 16"
 )
 
 # =====================
@@ -86,24 +91,52 @@ if custo_produto:
             preco_amazon += 1
 
         # =====================
+        # MERCADO LIVRE
+        # =====================
+        if comissao_ml:
+            comissao = float(comissao_ml.replace(",", ".")) / 100
+
+            preco_ml = math.ceil((custo + lucro_desejado + custo_fixo) / (1 - comissao))
+
+            while True:
+                recebido = preco_ml * (1 - comissao)
+                lucro_ml = recebido - custo_fixo - custo
+
+                if lucro_ml >= lucro_desejado - 1:
+                    break
+
+                preco_ml += 1
+        else:
+            preco_ml = None
+            lucro_ml = None
+
+        # =====================
         # RESULTADOS
         # =====================
         st.subheader("📊 Resultados")
 
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
 
         with col1:
             st.markdown("### 🟧 Shopee")
-            st.success(f"Preço ideal: R$ {preco_shopee:.2f}")
+            st.success(f"Preço: R$ {preco_shopee:.2f}")
             st.info(f"Lucro: R$ {lucro_shopee:.2f}")
 
         with col2:
             st.markdown("### 🟦 Amazon")
-            st.success(f"Preço ideal: R$ {preco_amazon:.2f}")
+            st.success(f"Preço: R$ {preco_amazon:.2f}")
             st.info(f"Lucro: R$ {lucro_amazon:.2f}")
 
+        with col3:
+            st.markdown("### 🟨 Mercado Livre")
+            if preco_ml:
+                st.success(f"Preço: R$ {preco_ml:.2f}")
+                st.info(f"Lucro: R$ {lucro_ml:.2f}")
+            else:
+                st.warning("Informe a comissão")
+
     except:
-        st.error("Digite um valor válido (use vírgula ou ponto).")
+        st.error("Digite valores válidos (use vírgula ou ponto).")
 
 # =====================
 # EXPLICAÇÃO
@@ -121,7 +154,7 @@ O sistema considera:
 - embalagem  
 - cartão  
 - imposto (Shopee)  
-- comissão do marketplace  
+- comissão de cada marketplace  
 
 E ajusta o preço automaticamente até atingir o lucro desejado.
 """)
