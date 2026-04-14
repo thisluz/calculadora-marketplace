@@ -19,18 +19,23 @@ modo = st.radio(
 # =====================
 # INPUTS
 # =====================
-valor_input = st.text_input(
-    "Valor base (R$)",
-    placeholder="Ex: 16,50"
-)
+valor_input = st.text_input("Valor base (R$)", placeholder="Ex: 16,50")
 
 embalagem = st.selectbox(
     "Embalagem",
     ["Caixa pequena (0,93)", "Caixa grande (1,65)"]
 )
 
+# Mercado Livre
+st.subheader("🟨 Mercado Livre")
+
+recebido_ml_input = st.text_input(
+    "Valor recebido (simulador ou real)",
+    placeholder="Ex: 38,80"
+)
+
 taxa_ml_input = st.text_input(
-    "Taxa Mercado Livre (%)",
+    "Taxa (%) caso não saiba o valor recebido",
     placeholder="Ex: 32"
 )
 
@@ -72,7 +77,8 @@ if valor_input != "":
             alvo = valor
         else:
             custo = valor
-            alvo = custo * 2 + custo_fixo
+            lucro_desejado = custo
+            alvo = custo + lucro_desejado + custo_fixo
 
         # =====================
         # SHOPEE
@@ -88,7 +94,7 @@ if valor_input != "":
                 ok = recebido_shopee >= alvo
             else:
                 lucro_shopee = recebido_shopee - custo_fixo - custo
-                ok = lucro_shopee >= custo - 1
+                ok = lucro_shopee >= lucro_desejado - 1
 
             if ok:
                 break
@@ -107,7 +113,7 @@ if valor_input != "":
                 ok = recebido_amazon >= alvo
             else:
                 lucro_amazon = recebido_amazon - custo_fixo - custo
-                ok = lucro_amazon >= custo - 1
+                ok = lucro_amazon >= lucro_desejado - 1
 
             if ok:
                 break
@@ -115,13 +121,22 @@ if valor_input != "":
             preco_amazon += 1
 
         # =====================
-        # MERCADO LIVRE
+        # MERCADO LIVRE (INTELIGENTE)
         # =====================
         preco_ml = None
+        taxa_ml = None
 
-        if taxa_ml_input != "":
+        # prioridade: valor recebido real
+        if recebido_ml_input != "":
+            preco_teste = valor
+            recebido_teste = float(recebido_ml_input.replace(",", "."))
+
+            taxa_ml = 1 - (recebido_teste / preco_teste)
+
+        elif taxa_ml_input != "":
             taxa_ml = float(taxa_ml_input.replace(",", ".")) / 100
 
+        if taxa_ml is not None:
             preco_ml = math.ceil(alvo / (1 - taxa_ml))
 
             while True:
@@ -131,7 +146,7 @@ if valor_input != "":
                     ok = recebido_ml >= alvo
                 else:
                     lucro_ml = recebido_ml - custo_fixo - custo
-                    ok = lucro_ml >= custo - 1
+                    ok = lucro_ml >= lucro_desejado - 1
 
                 if ok:
                     break
@@ -189,28 +204,10 @@ if valor_input != "":
                 else:
                     lucro = recebido_ml - custo_fixo - custo
                     st.info(f"Lucro: R$ {lucro:.2f}")
+
+                st.caption(f"Taxa usada: {taxa_ml*100:.1f}%")
             else:
-                st.warning("Informe a taxa")
+                st.warning("Informe taxa ou valor recebido")
 
     except Exception as e:
         st.error(f"Erro: {e}")
-
-# =====================
-# EXPLICAÇÃO
-# =====================
-with st.expander("📐 Como o cálculo funciona"):
-    st.markdown("""
-### Modo 1 — Receber valor líquido
-Calcula o preço necessário para que, após taxas, você receba o valor informado.
-
-### Modo 2 — Lucro baseado no custo
-Garante que o lucro seja igual ao custo do produto.
-
-### O cálculo considera:
-- custo do produto  
-- motoboy  
-- embalagem  
-- cartão  
-- imposto (Shopee)  
-- comissão de cada marketplace  
-""")
