@@ -1,6 +1,9 @@
 import streamlit as st
 import math
 
+# =====================
+# CONFIG
+# =====================
 st.set_page_config(page_title="Calculadora Marketplace", page_icon="🧮")
 
 st.title("🧮 Calculadora de Preço")
@@ -42,7 +45,7 @@ AMAZON_COMISSAO = 0.15
 caixa = 0.93 if "pequena" in embalagem else 1.65
 
 # =====================
-# SHOPEE
+# FUNÇÃO SHOPEE
 # =====================
 def taxa_shopee(preco):
     if preco <= 79.99:
@@ -64,13 +67,13 @@ if valor_input:
         custo_fixo = MOTOBOY + CARTAO + caixa
 
         # =====================
-        # DEFINIR ALVO
+        # DEFINIÇÃO DO ALVO
         # =====================
         if modo == "Receber valor líquido":
             alvo = valor
         else:
             custo = valor
-            alvo = custo * 2 + custo_fixo  # custo + lucro + fixos
+            alvo = custo * 2 + custo_fixo
 
         # =====================
         # SHOPEE
@@ -80,7 +83,6 @@ if valor_input:
         while True:
             taxas = taxa_shopee(preco_shopee)
             imposto = preco_shopee * IMPOSTO
-
             recebido = preco_shopee - taxas - imposto
 
             if modo == "Receber valor líquido":
@@ -116,6 +118,8 @@ if valor_input:
         # =====================
         # MERCADO LIVRE
         # =====================
+        preco_ml = None
+
         if taxa_ml_input:
             taxa_ml = float(taxa_ml_input.replace(",", ".")) / 100
 
@@ -134,8 +138,6 @@ if valor_input:
                     break
 
                 preco_ml += 1
-        else:
-            preco_ml = None
 
         # =====================
         # RESULTADOS
@@ -144,14 +146,17 @@ if valor_input:
 
         col1, col2, col3 = st.columns(3)
 
+        # SHOPEE
         with col1:
             st.markdown("### 🟧 Shopee")
             st.success(f"R$ {preco_shopee:.2f}")
 
+        # AMAZON
         with col2:
             st.markdown("### 🟦 Amazon")
             st.success(f"R$ {preco_amazon:.2f}")
 
+        # MERCADO LIVRE
         with col3:
             st.markdown("### 🟨 Mercado Livre")
             if preco_ml:
@@ -160,4 +165,26 @@ if valor_input:
                 st.warning("Informe a taxa")
 
     except:
-        st.error("Digite valores válidos")
+        st.error("Digite um valor válido (use vírgula ou ponto).")
+
+# =====================
+# EXPLICAÇÃO
+# =====================
+with st.expander("📐 Como o cálculo funciona"):
+    st.markdown("""
+### Modo 1 — Receber valor líquido
+Calcula o preço necessário para que, após taxas, você receba o valor informado.
+
+### Modo 2 — Lucro baseado no custo
+Garante que o lucro seja igual ao custo do produto.
+
+### O cálculo considera:
+- custo do produto  
+- motoboy  
+- embalagem  
+- cartão  
+- imposto (Shopee)  
+- comissão de cada marketplace  
+
+E ajusta o preço automaticamente até atingir o objetivo.
+""")
