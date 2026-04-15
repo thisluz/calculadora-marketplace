@@ -23,7 +23,19 @@ embalagem = st.selectbox(
 )
 
 # =====================
-# MERCADO LIVRE (SIMPLIFICADO)
+# AMAZON
+# =====================
+st.subheader("🟦 Amazon")
+
+frete_amazon_input = st.text_input(
+    "Frete Amazon (R$)",
+    placeholder="Ex: 20"
+)
+
+st.caption("A comissão (15%) é aplicada sobre produto + frete")
+
+# =====================
+# MERCADO LIVRE
 # =====================
 st.subheader("🟨 Mercado Livre")
 
@@ -122,8 +134,11 @@ if valor_input:
             lucro_desejado = custo
             alvo = custo + lucro_desejado + custo_fixo
 
+        # =====================
         # SHOPEE
+        # =====================
         preco_shopee = math.ceil(alvo / 0.8)
+
         while True:
             taxas = taxa_shopee(preco_shopee)
             imposto = preco_shopee * IMPOSTO
@@ -137,24 +152,36 @@ if valor_input:
 
             if ok:
                 break
+
             preco_shopee += 1
 
-        # AMAZON
-        preco_amazon = math.ceil(alvo / 0.85)
-        while True:
-            recebido = preco_amazon * (1 - AMAZON_COMISSAO)
+        # =====================
+        # AMAZON (CORRIGIDO)
+        # =====================
+        preco_amazon = None
 
-            if modo == "Receber valor líquido":
-                ok = recebido >= alvo
-            else:
-                lucro = recebido - custo_fixo - custo
-                ok = lucro >= lucro_desejado - 1
+        if frete_amazon_input:
+            frete_amazon = float(frete_amazon_input.replace(",", "."))
 
-            if ok:
-                break
-            preco_amazon += 1
+            preco_amazon = math.ceil((alvo + frete_amazon) / (1 - AMAZON_COMISSAO) - frete_amazon)
 
-        # MERCADO LIVRE (FINAL)
+            while True:
+                recebido = (preco_amazon + frete_amazon) * (1 - AMAZON_COMISSAO) - frete_amazon
+
+                if modo == "Receber valor líquido":
+                    ok = recebido >= alvo
+                else:
+                    lucro = recebido - custo_fixo - custo
+                    ok = lucro >= lucro_desejado - 1
+
+                if ok:
+                    break
+
+                preco_amazon += 1
+
+        # =====================
+        # MERCADO LIVRE
+        # =====================
         preco_ml = None
 
         if comissao_ml_input:
@@ -165,7 +192,6 @@ if valor_input:
             while True:
                 frete_tabela = frete_ml(peso, preco_ml)
 
-                # frete grátis
                 if preco_ml >= 79:
                     frete = float(frete_manual_input.replace(",", ".")) if frete_manual_input else frete_tabela
                 else:
@@ -184,7 +210,9 @@ if valor_input:
 
                 preco_ml += 1
 
+        # =====================
         # OUTPUT
+        # =====================
         st.subheader("📊 Resultados")
 
         col1, col2, col3 = st.columns(3)
@@ -195,7 +223,10 @@ if valor_input:
 
         with col2:
             st.markdown("### 🟦 Amazon")
-            st.success(f"R$ {preco_amazon:.2f}")
+            if preco_amazon:
+                st.success(f"R$ {preco_amazon:.2f}")
+            else:
+                st.warning("Informe o frete")
 
         with col3:
             st.markdown("### 🟨 Mercado Livre")
