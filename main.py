@@ -4,7 +4,11 @@ import math
 # =====================
 # CONFIG
 # =====================
-st.set_page_config(page_title="Calculadora Marketplace", page_icon="🧮")
+st.set_page_config(
+    page_title="Calculadora Marketplace",
+    page_icon="🧮"
+)
+
 st.title("🧮 Calculadora de Preço")
 
 # =====================
@@ -15,7 +19,10 @@ modo = st.radio(
     ["Receber valor líquido", "Lucro baseado no custo"]
 )
 
-valor_input = st.text_input("Valor base (R$)", placeholder="Ex: 16,50")
+valor_input = st.text_input(
+    "Valor base (R$)",
+    placeholder="Ex: 16,50"
+)
 
 embalagem = st.selectbox(
     "Embalagem",
@@ -39,7 +46,10 @@ st.caption("A comissão (15%) é aplicada sobre produto + frete")
 # =====================
 st.subheader("🟨 Mercado Livre")
 
-comissao_ml_input = st.text_input("Comissão (%)", placeholder="Ex: 16")
+comissao_ml_input = st.text_input(
+    "Comissão (%)",
+    placeholder="Ex: 16"
+)
 
 peso = st.selectbox(
     "Peso do produto",
@@ -106,6 +116,7 @@ def frete_ml(peso, preco):
 
     return tabela[peso][faixa]
 
+
 # =====================
 # SHOPEE
 # =====================
@@ -119,35 +130,83 @@ def taxa_shopee(preco):
     else:
         return preco * 0.14 + 26
 
+
 # =====================
 # CALCULO
 # =====================
 if valor_input:
+
     try:
         valor = float(valor_input.replace(",", "."))
+
         custo_fixo = MOTOBOY + CARTAO + caixa
 
+        # =====================
+        # DEFINIÇÃO DO ALVO
+        # =====================
         if modo == "Receber valor líquido":
+
             alvo = valor
+            custo = 0
+            lucro_desejado = 0
+
         else:
+
             custo = valor
             lucro_desejado = custo
+
+            # Custo do produto + lucro desejado + custos fixos
             alvo = custo + lucro_desejado + custo_fixo
 
         # =====================
         # SHOPEE
         # =====================
+
+        # Estimativa inicial.
+        # A maior taxa percentual da Shopee é 20%.
         preco_shopee = math.ceil(alvo / 0.8)
 
         while True:
+
             taxas = taxa_shopee(preco_shopee)
+
+            # IMPORTANTE:
+            # O valor recebido aqui é antes do imposto de 6%,
+            # exatamente como na coluna D da planilha.
+            recebido = preco_shopee - taxas
+
             imposto = preco_shopee * IMPOSTO
-            recebido = preco_shopee - taxas - imposto
 
             if modo == "Receber valor líquido":
-                ok = recebido >= alvo
+
+                # Se o objetivo for receber um valor líquido,
+                # aqui consideramos também o imposto como custo.
+                valor_liquido = recebido - imposto
+
+                ok = valor_liquido >= alvo
+
             else:
-                lucro = recebido - custo_fixo - custo
+
+                # MESMA lógica da planilha:
+                #
+                # Recebido
+                # - produto
+                # - caixa
+                # - motoboy
+                # - cartão
+                # - imposto
+                #
+                # = lucro
+
+                lucro = (
+                    recebido
+                    - custo_fixo
+                    - custo
+                    - imposto
+                )
+
+                # Mantém a tolerância de até R$ 1 abaixo
+                # do lucro desejado.
                 ok = lucro >= lucro_desejado - 1
 
             if ok:
@@ -156,22 +215,42 @@ if valor_input:
             preco_shopee += 1
 
         # =====================
-        # AMAZON (CORRIGIDO)
+        # AMAZON
         # =====================
         preco_amazon = None
 
         if frete_amazon_input:
-            frete_amazon = float(frete_amazon_input.replace(",", "."))
 
-            preco_amazon = math.ceil((alvo + frete_amazon) / (1 - AMAZON_COMISSAO) - frete_amazon)
+            frete_amazon = float(
+                frete_amazon_input.replace(",", ".")
+            )
+
+            preco_amazon = math.ceil(
+                (alvo + frete_amazon)
+                / (1 - AMAZON_COMISSAO)
+                - frete_amazon
+            )
 
             while True:
-                recebido = (preco_amazon + frete_amazon) * (1 - AMAZON_COMISSAO) - frete_amazon
+
+                recebido = (
+                    (preco_amazon + frete_amazon)
+                    * (1 - AMAZON_COMISSAO)
+                    - frete_amazon
+                )
 
                 if modo == "Receber valor líquido":
+
                     ok = recebido >= alvo
+
                 else:
-                    lucro = recebido - custo_fixo - custo
+
+                    lucro = (
+                        recebido
+                        - custo_fixo
+                        - custo
+                    )
+
                     ok = lucro >= lucro_desejado - 1
 
                 if ok:
@@ -185,24 +264,54 @@ if valor_input:
         preco_ml = None
 
         if comissao_ml_input:
-            comissao = float(comissao_ml_input.replace(",", ".")) / 100
 
-            preco_ml = math.ceil(alvo / (1 - comissao))
+            comissao = (
+                float(comissao_ml_input.replace(",", "."))
+                / 100
+            )
+
+            preco_ml = math.ceil(
+                alvo / (1 - comissao)
+            )
 
             while True:
-                frete_tabela = frete_ml(peso, preco_ml)
+
+                frete_tabela = frete_ml(
+                    peso,
+                    preco_ml
+                )
 
                 if preco_ml >= 79:
-                    frete = float(frete_manual_input.replace(",", ".")) if frete_manual_input else frete_tabela
+
+                    frete = (
+                        float(
+                            frete_manual_input.replace(",", ".")
+                        )
+                        if frete_manual_input
+                        else frete_tabela
+                    )
+
                 else:
+
                     frete = frete_tabela
 
-                recebido_ml = preco_ml * (1 - comissao) - frete
+                recebido_ml = (
+                    preco_ml * (1 - comissao)
+                    - frete
+                )
 
                 if modo == "Receber valor líquido":
+
                     ok = recebido_ml >= alvo
+
                 else:
-                    lucro_ml = recebido_ml - custo_fixo - custo
+
+                    lucro_ml = (
+                        recebido_ml
+                        - custo_fixo
+                        - custo
+                    )
+
                     ok = lucro_ml >= lucro_desejado - 1
 
                 if ok:
@@ -217,23 +326,56 @@ if valor_input:
 
         col1, col2, col3 = st.columns(3)
 
+        # =====================
+        # SHOPEE OUTPUT
+        # =====================
         with col1:
+
             st.markdown("### 🟧 Shopee")
-            st.success(f"R$ {preco_shopee:.2f}")
+            st.success(
+                f"R$ {preco_shopee:.2f}"
+            )
 
+        # =====================
+        # AMAZON OUTPUT
+        # =====================
         with col2:
-            st.markdown("### 🟦 Amazon")
-            if preco_amazon:
-                st.success(f"R$ {preco_amazon:.2f}")
-            else:
-                st.warning("Informe o frete")
 
-        with col3:
-            st.markdown("### 🟨 Mercado Livre")
-            if preco_ml:
-                st.success(f"R$ {preco_ml:.2f}")
+            st.markdown("### 🟦 Amazon")
+
+            if preco_amazon:
+
+                st.success(
+                    f"R$ {preco_amazon:.2f}"
+                )
+
             else:
-                st.warning("Preencha a comissão")
+
+                st.warning(
+                    "Informe o frete"
+                )
+
+        # =====================
+        # MERCADO LIVRE OUTPUT
+        # =====================
+        with col3:
+
+            st.markdown("### 🟨 Mercado Livre")
+
+            if preco_ml:
+
+                st.success(
+                    f"R$ {preco_ml:.2f}"
+                )
+
+            else:
+
+                st.warning(
+                    "Preencha a comissão"
+                )
 
     except Exception as e:
-        st.error(f"Erro: {e}")
+
+        st.error(
+            f"Erro: {e}"
+        )
