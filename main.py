@@ -120,9 +120,19 @@ def frete_ml(peso, preco):
 # =====================
 # SHOPEE
 # =====================
+# Regras vigentes a partir de 01/10/2026:
+#
+#   < R$ 9,00          -> 20% de comissão + valor fixo de 50% do preço do produto
+#   R$ 9,00 a R$ 79,99  -> 20% de comissão + R$ 4,50 por item vendido
+#   R$ 80 a R$ 99,99    -> 14% de comissão + R$ 16,00 por item vendido
+#   R$ 100 a R$ 199,99  -> 14% de comissão + R$ 20,00 por item vendido
+#   Acima de R$ 200     -> 14% de comissão + R$ 26,00 por item vendido
 def taxa_shopee(preco):
-    if preco <= 79.99:
-        return preco * 0.20 + 4
+    if preco < 9:
+        # Regra reduzida: valor fixo = 50% do preço do produto
+        return preco * 0.20 + preco * 0.50
+    elif preco <= 79.99:
+        return preco * 0.20 + 4.50
     elif preco <= 99.99:
         return preco * 0.14 + 16
     elif preco <= 199.99:
